@@ -2,7 +2,9 @@
 """The main script to start a Gomoku game between two agents and a board
 agent."""
 
-from board_agent import NAME_TO_PIECE, NAME_BLACK, NAME_WHITE, BoardAgent
+from datetime import datetime
+import os
+from board_agent import NAME_TO_PIECE, NAME_BLACK, NAME_WHITE, BoardAgent, board2img
 from gomoku_agent import GomokuAgent
 
 from agentscope import msghub
@@ -65,6 +67,8 @@ i = 0
 # Use a msg hub to share conversation between two players, e.g. white player
 # can hear what black player says to the board
 with msghub(participants=[black, white, board]):
+    img_dir = f'./imgs/{datetime.now().strftime('%Y%m%d-%H%M%S')}'
+    os.makedirs(img_dir, exist_ok=True)
     while not board.game_end and i < MAX_STEPS:
         for player in [black, white]:
             # receive the move from the player, judge if the game ends and
@@ -79,3 +83,5 @@ with msghub(participants=[black, white, board]):
             msg = player(msg)
 
             i += 1
+        
+        board2img(board.board, os.path.join(img_dir, f"board-step{i}.png"))
