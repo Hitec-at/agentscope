@@ -37,6 +37,9 @@ from .gemini_model import (
     GeminiChatWrapper,
     GeminiEmbeddingWrapper,
 )
+from .xverse_model import (
+    XverseChatWrapper,
+)
 
 
 __all__ = [
@@ -62,6 +65,8 @@ __all__ = [
     "load_model_by_config_name",
     "read_model_configs",
     "clear_model_configs",
+    "XverseWrapperBase",
+    "XverseChatWrapper",
 ]
 
 _MODEL_CONFIGS: dict[str, dict] = {}
