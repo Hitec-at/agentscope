@@ -39,7 +39,7 @@ YOUR_MODEL_CONFIGURATION = {
          # Detailed parameters into initialize the model wrapper
         "model_name": "XVERSE-65B-2",                         # The used model in openai API, e.g. gpt-4, gpt-3.5-turbo, etc.
         "api_key": "WpheZ2QeWEwTPDNC7CL8anYceg8TYlAZ",                              # The API key for OpenAI API. If not set, env
-}                                           # variable OPENAI_ORGANIZATION will be used.
+}
 
 # Initialize the agents
 agentscope.init(model_configs=YOUR_MODEL_CONFIGURATION)

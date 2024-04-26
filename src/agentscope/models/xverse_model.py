@@ -232,5 +232,9 @@ class XverseChatWrapper(XverseWrapperBase):
                     f"The input should be a Msg object or a list "
                     f"of Msg objects, got {type(arg)}.",
                 )
+                
+        # role 校验
+        if len(messages) > 1:
+            messages[-1]["role"] = "user" # 最后一句对话角色必须是 user
 
         return messages
