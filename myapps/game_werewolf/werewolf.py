@@ -28,7 +28,7 @@ def main() -> None:
     survivors = agentscope.init(
         model_configs="./configs/model_configs.json",
         agent_configs="./configs/agent_configs.json",
-        logger_level="DEBUG",
+        logger_level="INFO",
     )
     roles = ["werewolf", "werewolf", "villager", "villager", "seer", "witch"]
     wolves, witch, seer = survivors[:2], survivors[-1], survivors[-2]
@@ -134,4 +134,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # content = ('{'
+    # '"thought": "基于当前的局势和玩家们的互动，我倾向于选择[Player3]作为今晚的目标。他似乎在尝试构建某种联盟，而且在讨论中也表现得较为积极。",'
+    # '"speak": "我建议我们今晚杀掉Player3。"'
+    # '}')
+    # print(extract_name_and_id(content)[0])
     main()

@@ -1,113 +1,96 @@
-# -*- coding: utf-8 -*-
-"""Used to record prompts, will be replaced by configuration"""
-
+"""用于记录提示，将由配置替换"""
 
 class Prompts:
-    """Prompts for werewolf game"""
+    """狼人游戏的提示"""
 
     to_wolves = (
-        "{}, if you are the only werewolf, eliminate a player. Otherwise, "
-        "discuss with your teammates and reach an agreement. Respond in the "
-        "following format which can be loaded by python json.loads()\n"
+        "{}, 你正在参与狼人杀游戏。你的身份是狼人，今晚必须杀死一位玩家。如果你是唯一的狼人，则直接选择杀死一个玩家。否则，"
+        "与你的队友讨论并达成一致。请使用以下格式回复\n"
         "{{\n"
-        '    "thought": "thought",\n'
-        '    "speak": "thoughts summary to say to others",\n'
-        '    "agreement": "whether the discussion reached an agreement or '
-        'not(true/false)"\n'
+        '    "thought": "想法",\n'
+        '    "speak": "想法总结为发言",\n'
+        '    "agreement": "讨论是否达成了一致'
+        '(true/false)"\n'
         "}}"
     )
 
     to_wolves_vote = (
-        "Which player do you vote to kill? Choose a player and respond in the following format "
-        "which can be loaded by python json.loads()\n"
+        "你选择杀死哪个玩家？选择一个玩家并使用以下格式回复\n"
         "{\n"
-        '   "thought": "thought" ,\n'
-        '   "speak": "player_name"\n'
+        '   "thought": "想法",\n'
+        '   "speak": "玩家名。例如 Player1"\n'
         "}"
     )
 
-    to_wolves_res = "The player with the most votes is {}."
+    to_wolves_res = "得票最多的玩家是{}。"
 
     to_witch_resurrect = (
-        "{witch_name}, you're the witch. Tonight {dead_name} is eliminated. "
-        "Would you like to resurrect {dead_name}? Respond in the following "
-        "format which can be loaded by python json.loads()\n"
+        "{witch_name}，你正在参与狼人杀游戏。你的身份是女巫。今晚{dead_name}被杀死了。"
+        "你想要复活{dead_name}吗？请使用以下格式回复\n"
         "{{\n"
-        '    "thought": "thought",\n'
-        '    "speak": "thoughts summary to say",\n'
+        '    "thought": "想法",\n'
+        '    "speak": "想法总结为发言",\n'
         '    "resurrect": true/false\n'
         "}}"
     )
 
     to_witch_poison = (
-        "Would you like to eliminate one player? Respond in the following "
-        "json format which can be loaded by python json.loads()\n"
+        "你想投毒杀死一个玩家吗？请使用以下json格式回复\n"
         "{\n"
-        '    "thought": "thought", \n'
-        '    "speak": "thoughts summary to say",\n'
-        '    "eliminate": ture/false\n'
+        '    "thought": "想法", \n'
+        '    "speak": "想法总结为发言",\n'
+        '    "eliminate": true/false\n'
         "}"
     )
 
     to_seer = (
-        "{}, you're the seer. Which player in {} would you like to check "
-        "tonight? Choose a player and respond in the following json format which can be loaded "
-        "by python json.loads()\n"
+        "{}, 你正在参与狼人杀游戏。你的身份是预言家。今晚你想查看哪个玩家的身份？选择一个玩家并使用以下格式回复\n"
         "{{\n"
-        '    "thought": "thought" ,\n'
-        '    "speak": "player_name"\n'
+        '    "thought": "想法" ,\n'
+        '    "speak": "玩家名。例如 Player1"\n'
         "}}"
     )
 
-    to_seer_result = "Okay, the role of {} is a {}."
+    to_seer_result = "好的，{}的角色是{}。"
 
     to_all_danger = (
-        "The day is coming, all the players open your eyes. Last night, "
-        "the following player(s) has been eliminated: {}."
+        "白天即将来临，所有玩家睁开你们的眼睛。昨晚，"
+        "以下玩家死亡：{}。"
     )
 
     to_all_peace = (
-        "The day is coming, all the players open your eyes. Last night is "
-        "peaceful, no player is eliminated."
+        "白天即将来临，所有玩家睁开你们的眼睛。昨晚是"
+        "平安夜，没有玩家死亡。"
     )
 
     to_all_discuss = (
-        "Now the alive players are {}. Given the game rules and your role, "
-        "based on the "
-        "situation and the information you gain, to vote a player eliminated "
-        "among alive players and to win the game, what do you want to say "
-        "to others? You can decide whether to reveal your role. Respond in "
-        "the following JSON format which can be loaded by python json.loads("
-        ")\n"
+        "现在活着的玩家是{}。根据游戏规则和你的角色，"
+        "基于情况和你获得的信息，为了赢得游戏而投票淘汰一个玩家，你想要对其他人说什么"
+        "？你可以决定是否透露你的角色。请使用以下格式回复\n"
         "{{\n"
-        '    "thought": "thought" ,\n'
-        '    "speak": "thought summary to say to others"\n'
+        '    "thought": "想法",\n'
+        '    "speak": "想法总结"\n'
         "}}"
     )
 
     to_all_vote = (
-        "Now the alive players are {}. Given the game rules and your role, "
-        "based on the situation and the information you gain, to win the "
-        "game, it's time to vote one player eliminated among the alive "
-        "players, please cast your vote on who you believe is a werewolf. "
-        "Choose a player and respond in the following format which can be loaded by python "
-        "json.loads()\n"
+        "现在活着的玩家是{}。根据游戏规则和你的角色，"
+        "基于情况和你获得的信息，为了赢得游戏，必须投票淘汰一个玩家，"
+        "请在活着的玩家中选择一个你认为是狼人的玩家并投票。选择一个玩家并使用以下格式回复"
         "{{\n"
-        '    "thought": "thought",\n'
-        '    "speak": "player_name"\n'
+        '    "thought": "想法",\n'
+        '    "speak": "玩家名。例如 Player1"\n'
         "}}"
     )
 
-    to_all_res = "{} has been voted out."
+    to_all_res = "{} 被淘汰了。"
 
     to_all_wolf_win = (
-        "The werewolves have prevailed and taken over the village. Better "
-        "luck next time!"
+        "狼人获胜并接管了村庄。下次好运！"
     )
 
     to_all_village_win = (
-        "The game is over. The werewolves have been defeated, and the village "
-        "is safe once again!"
+        "游戏结束。狼人被击败，村庄再次安全了！"
     )
 
-    to_all_continue = "The game goes on."
+    to_all_continue = "游戏继续。"
