@@ -143,3 +143,6 @@ tmp*.json
 
 # imgs
 imgs
+
+# vscode misc.
+.vscode

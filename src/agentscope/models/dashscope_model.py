@@ -57,9 +57,16 @@ class DashScopeWrapperBase(ModelWrapperBase, ABC):
         self.model_name = model_name
         self.generate_args = generate_args or {}
 
-        self.api_key = api_key
+        # set api key from kwargs
+        api_key_envvar = kwargs.get("api_key_envvar", None)
+        if api_key_envvar is not None:
+            self.api_key = os.environ.get(api_key_envvar)
+        else:
+            self.api_key = api_key
+    
         dashscope.api_key = self.api_key
         self.max_length = None
+        
 
         # Set monitor accordingly
         self._register_default_metrics()

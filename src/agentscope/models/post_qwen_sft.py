@@ -17,10 +17,10 @@ from ..message import MessageBase
 from ..utils.tools import _convert_to_str
 
 
-class PostAPIModelWrapperBase(ModelWrapperBase, ABC):
+class PostQwenSFTWrapperBase(ModelWrapperBase, ABC):
     """The base model wrapper for the model deployed on the POST API."""
 
-    model_type: str = "post_api"
+    model_type: str = "post_qwen_sft"
 
     def __init__(
         self,
@@ -167,25 +167,22 @@ class PostAPIModelWrapperBase(ModelWrapperBase, ABC):
             )
 
 
-class PostAPIChatWrapper(PostAPIModelWrapperBase):
+class PostAPIForQWENSFT(PostQwenSFTWrapperBase):
     """A post api model wrapper compatilble with openai chat, e.g., vLLM,
     FastChat."""
 
-    model_type: str = "post_api_chat"
+    model_type: str = "post_qwen_sft_chat"
 
     def _parse_response(self, response: dict) -> ModelResponse:
         return ModelResponse(
-            text=response["data"]["response"]["choices"][0]["message"][
-                "content"
-            ],
+            text=response.text
         )
 
     def format(
         self,
         *args: Union[MessageBase, Sequence[MessageBase]],
-    ) -> Union[List[dict]]:
-        """Format the input messages into a list of dict, which is
-        compatible to OpenAI Chat API.
+    ) -> str:
+        """Format the input messages into a string message, inserted into request.body.${message_key}.
 
         Args:
             args (`Union[MessageBase, Sequence[MessageBase]]`):
@@ -202,13 +199,7 @@ class PostAPIChatWrapper(PostAPIModelWrapperBase):
             if arg is None:
                 continue
             if isinstance(arg, MessageBase):
-                messages.append(
-                    {
-                        "role": arg.role,
-                        "name": arg.name,
-                        "content": _convert_to_str(arg.content),
-                    },
-                )
+                messages.append(arg.content)
             elif isinstance(arg, list):
                 messages.extend(self.format(*arg))
             else:
@@ -217,33 +208,5 @@ class PostAPIChatWrapper(PostAPIModelWrapperBase):
                     f"of Msg objects, got {type(arg)}.",
                 )
 
-        return messages
+        return '.'.join(messages)
 
-
-class PostAPIDALLEWrapper(PostAPIModelWrapperBase):
-    """A post api model wrapper compatible with openai dall_e"""
-
-    model_type: str = "post_api_dall_e"
-
-    deprecated_model_type: str = "post_api_dalle"
-
-    def _parse_response(self, response: dict) -> ModelResponse:
-        if "data" not in response["data"]["response"]:
-            if "error" in response["data"]["response"]:
-                error_msg = response["data"]["response"]["error"]["message"]
-            else:
-                error_msg = response["data"]["response"]
-            logger.error(f"Error in API call:\n{error_msg}")
-            raise ValueError(f"Error in API call:\n{error_msg}")
-        urls = [img["url"] for img in response["data"]["response"]["data"]]
-        return ModelResponse(image_urls=urls)
-
-    def format(
-        self,
-        *args: Union[MessageBase, Sequence[MessageBase]],
-    ) -> Union[List[dict], str]:
-        raise RuntimeError(
-            f"Model Wrapper [{type(self).__name__}] doesn't "
-            f"need to format the input. Please try to use the "
-            f"model wrapper directly.",
-        )

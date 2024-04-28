@@ -14,7 +14,9 @@ from agentscope.message import Msg
 from agentscope.msghub import msghub
 from agentscope.pipelines.functional import sequentialpipeline
 import agentscope
+import os 
 
+FILE_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 # pylint: disable=too-many-statements
 def main() -> None:
@@ -26,9 +28,9 @@ def main() -> None:
     MAX_GAME_ROUND = 6
     # read model and agent configs, and initialize agents automatically
     survivors = agentscope.init(
-        model_configs="./configs/model_configs.json",
-        agent_configs="./configs/agent_configs.json",
-        logger_level="INFO",
+        model_configs=f"{FILE_DIR_PATH}/configs/model_configs.json",
+        agent_configs=f"{FILE_DIR_PATH}/configs/agent_configs.json",
+        logger_level="DEBUG",
     )
     roles = ["werewolf", "werewolf", "villager", "villager", "seer", "witch"]
     wolves, witch, seer = survivors[:2], survivors[-1], survivors[-2]

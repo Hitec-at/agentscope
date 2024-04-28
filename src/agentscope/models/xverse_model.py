@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Model wrapper for OpenAI models"""
 from abc import ABC
+import os
 from typing import Union, Any, List, Sequence
 
 from loguru import logger
@@ -68,7 +69,17 @@ class XverseWrapperBase(ModelWrapperBase, ABC):
 
         self.model_name = model_name
         self.generate_args = generate_args or {}
+        
+        if api_key == None: # if none, try to get from envvar
+            logger.warning("api_key is not set, try to get from envvar.")
+            api_key_envvar = kwargs.get("api_key_envvar", None)
+            if api_key_envvar is None:
+                logger.error("api_key_envvar is not set.")
+                api_key_envvar = ""
+            else:
+                api_key = os.environ.get(api_key_envvar, None)
 
+        logger.info(f"api_key: {api_key}")
         self.client = openai.Client(
             api_key=api_key,
             base_url="https://api.xverse.cn/v1",

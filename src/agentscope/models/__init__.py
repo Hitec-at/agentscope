@@ -40,6 +40,10 @@ from .gemini_model import (
 from .xverse_model import (
     XverseChatWrapper,
 )
+from .post_qwen_sft import (
+    PostQwenSFTWrapperBase,
+    PostAPIForQWENSFT
+)
 
 
 __all__ = [
@@ -67,6 +71,8 @@ __all__ = [
     "clear_model_configs",
     "XverseWrapperBase",
     "XverseChatWrapper",
+    "PostQwenSFTWrapperBase"
+    "PostAPIForQWENSFT",
 ]
 
 _MODEL_CONFIGS: dict[str, dict] = {}
