@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """A werewolf game implemented by agentscope."""
 from functools import partial
+from typing import Literal
 
 from prompt import Prompts
 from werewolf_utils import (
@@ -17,6 +18,11 @@ import agentscope
 import os 
 
 FILE_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+# playing roles definition
+ROLE_WEREWOLF = "狼人"
+ROLE_VILLAGER = "村民"
+ROLE_SEER = "预言家"
+ROLE_WITCH = "女巫"
 
 # pylint: disable=too-many-statements
 def main() -> None:
@@ -30,9 +36,9 @@ def main() -> None:
     survivors = agentscope.init(
         model_configs=f"{FILE_DIR_PATH}/configs/model_configs.json",
         agent_configs=f"{FILE_DIR_PATH}/configs/agent_configs.json",
-        logger_level="DEBUG",
+        logger_level="INFO",
     )
-    roles = ["werewolf", "werewolf", "villager", "villager", "seer", "witch"]
+    roles = [ROLE_WEREWOLF, ROLE_WEREWOLF, ROLE_VILLAGER, ROLE_VILLAGER, ROLE_SEER, ROLE_WITCH]
     wolves, witch, seer = survivors[:2], survivors[-1], survivors[-2]
 
     # start the game
@@ -40,34 +46,49 @@ def main() -> None:
         # night phase, werewolves discuss
         hint = HostMsg(content=Prompts.to_wolves.format(n2s(wolves)))
         with msghub(wolves, announcement=hint) as hub:
-            for _ in range(MAX_WEREWOLF_DISCUSSION_ROUND):
-                x = sequentialpipeline(wolves)
+            for _ in range(MAX_WEREWOLF_DISCUSSION_ROUND): # announcement is sent to each wolf
+                x = sequentialpipeline(wolves) # waiting for agreement, if discussion round reaches max, the discussion ends
                 if x.get("agreement", False):
                     break
 
             # werewolves vote
             hint = HostMsg(content=Prompts.to_wolves_vote)
-            votes = [
-                extract_name_and_id(wolf(hint).content)[0] for wolf in wolves
-            ]
+            
+            votes = []
+            for wolf in wolves:
+                name, _, valid = extract_name_and_id(wolf(hint).content)  # only valid player name from reply added to the list
+                if valid and len(name) != 0:
+                    votes.append(name)
             # broadcast the result to werewolves
             dead_player = [majority_vote(votes)]
-            hub.broadcast(
-                HostMsg(content=Prompts.to_wolves_res.format(dead_player[0])),
-            )
+            if len(dead_player) == 0:
+                hub.broadcast(
+                    HostMsg(content=Prompts.to_wolves_res_empty),
+                )
+            else:
+                hub.broadcast(
+                    HostMsg(content=Prompts.to_wolves_res.format(dead_player[0])),
+                )
 
         # witch
         healing_used_tonight = False
         if witch in survivors:
             if healing:
-                hint = HostMsg(
-                    content=Prompts.to_witch_resurrect.format_map(
+                if len(dead_player) == 0:
+                    result = Prompts.to_witch_no_dead
+                else:
+                    result = Prompts.to_witch_has_dead.format_map(
                         {
-                            "witch_name": witch.name,
                             "dead_name": dead_player[0],
-                        },
-                    ),
-                )
+                        }
+                    )
+                    
+                hint=HostMsg(content=Prompts.to_witch_resurrect.format_map(
+                    {
+                        "witch_name": witch.name,
+                        "result_and_reply": result,
+                    },
+                ),)
                 if witch(hint).get("resurrect", False):
                     healing_used_tonight = True
                     dead_player.pop()
@@ -76,8 +97,10 @@ def main() -> None:
             if poison and not healing_used_tonight:
                 x = witch(HostMsg(content=Prompts.to_witch_poison))
                 if x.get("eliminate", False):
-                    dead_player.append(extract_name_and_id(x.content)[0])
-                    poison = False
+                    name, _, valid = extract_name_and_id(x.content)
+                    if valid and len(name) != 0:
+                        dead_player.append()
+                        poison = False
 
         # seer
         if seer in survivors:
@@ -86,8 +109,8 @@ def main() -> None:
             )
             x = seer(hint)
 
-            player, idx = extract_name_and_id(x.content)
-            role = "werewolf" if roles[idx] == "werewolf" else "villager"
+            player, idx, _ = extract_name_and_id(x.content)
+            role = ROLE_WEREWOLF if role[idx] == ROLE_WEREWOLF else ROLE_VILLAGER
             hint = HostMsg(content=Prompts.to_seer_result.format(player, role))
             seer.observe(hint)
 
@@ -115,12 +138,20 @@ def main() -> None:
 
             # vote
             hint = HostMsg(content=Prompts.to_all_vote.format(n2s(survivors)))
-            votes = [
-                extract_name_and_id(_(hint).content)[0] for _ in survivors
-            ]
+            
+            votes = []
+            for survivor in survivors:
+                name, _, valid = extract_name_and_id(survivor(hint).content) 
+                if valid and len(name) != 0:
+                    votes.append(name)
+            
             vote_res = majority_vote(votes)
+        
             # broadcast the result to all players
-            result = HostMsg(content=Prompts.to_all_res.format(vote_res))
+            if len(vote_res) == 0:
+                result = HostMsg(content=Prompts.to_all_res_no_voteout)
+            else:
+                result = HostMsg(content=Prompts.to_all_res_has_voteout.format(vote_res))
             hub.broadcast(result)
 
             survivors, wolves = update_alive_players(

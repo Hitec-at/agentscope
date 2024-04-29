@@ -43,11 +43,19 @@ def majority_vote(votes: list) -> Any:
     return unit[np.argmax(counts)]
 
 
-def extract_name_and_id(name: str) -> tuple[str, int]:
-    """extract player name and id from a string"""
-    name = re.search(r"\bPlayer\d+\b", name).group(0)
+def extract_name_and_id(name: str) -> tuple[str, int, bool]:
+    """extract player name, id and whether it's valid from a string"""
+    res = re.search(r"\bPlayer\d+\b", name)
+    if res is None:
+        res = re.search(r"弃|无|[Pp]ass", name) # 如果都没有，则返回弃权
+        if res is None:
+            return "", -1, False
+        else:
+            return "", -1, True
+    
+    name = res.group(0)
     idx = int(re.search(r"Player(\d+)", name).group(1)) - 1
-    return name, idx
+    return name, idx, True
 
 
 def n2s(agents: Sequence[Union[AgentBase, str]]) -> str:
@@ -62,6 +70,6 @@ def n2s(agents: Sequence[Union[AgentBase, str]]) -> str:
 
     return (
         ", ".join([_get_name(_) for _ in agents[:-1]])
-        + " and "
+        + " 和 "
         + _get_name(agents[-1])
     )
