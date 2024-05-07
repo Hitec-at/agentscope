@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Resources definition and implementation, including quests & materials / areas and background knowledge."""
 
+from functools import partial
 import json
 import time
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Sequence
 import uuid
 from loguru import logger
 
@@ -25,7 +26,6 @@ class MaterialItem(dict):
     '''
     def __init__(self, 
                  name="",
-                 type="basic",
                  description="",
                  possesser_id="",
                  type_id="",
@@ -35,7 +35,6 @@ class MaterialItem(dict):
         self.type_id = type_id
         self.description = description
         self.possesser_id = possesser_id
-        self.type = type
         
         self.update(kwargs)
         
@@ -61,17 +60,33 @@ class MaterialItem(dict):
         return hash(self.type_id)
     
     def __str__(self) -> str:
-        return f"{self.name}:({self.type_id})"
+        return f"{self.type_id}"
 
 
 class Lumber(MaterialItem):
+    name = "lumber"
+    description="A piece of wood."
+    type_id = "lumber"
+    
     def __init__(self, 
                  possesser_id="",) -> None:
-        super().__init__(name="lumber",
-                         type="material",
-                         description="A piece of wood.",
-                         type_id="lumber-0",
+        super().__init__(name=self.name,
+                         description=self.description,
+                         type_id=self.type_id,
                          possesser_id=possesser_id)
+        
+        
+def material_item_factory(item_type_id: str, 
+                          possesser_id: str,
+                          number: int = 0) -> Sequence[MaterialItem]:
+    '''
+    Generate material item(s)
+    '''
+    material_dict = {
+        Lumber.type_id: Lumber,
+    }
+    
+    return [material_dict[item_type_id](possesser_id=possesser_id) for _ in range(number)]
     
 
 class QuestMeta(dict):
@@ -103,6 +118,13 @@ class QuestMeta(dict):
     @property
     def quest_id(self) -> str:
         return self._quest_id
+    
+    def prompt(self) -> str:
+        requirement_msgs = []
+        for k, v in self.materials_requirement.items():
+            requirement_msgs.append(f"{str(k)}: {v}")
+            
+        return f"name: {self.name}, description: {self.description}, requirement: {{{",".join(requirement_msgs)}}}"
 
     def __getattr__(self, key: Any) -> Any:
         try:
@@ -129,7 +151,7 @@ class Quest(AgentBase):
         self.quest_meta = quest_meta
         self.current_status: Dict = {} # {material: amount}
         
-        super().__init__(name=quest_meta, use_memory=False)
+        super().__init__(name=quest_meta.name, use_memory=False)
     
     def reply(self, x: dict = None) -> dict:
         '''
@@ -148,19 +170,28 @@ class Quest(AgentBase):
             "valid": False,
             "finished": False,
         }
+        ReturnMsg = partial(Msg, name=self.name, role="assistant", echo=True)
         err = self._validate(x)
         if err != None:
             logger.error(f"Invalid submission: {err}")
             return_content["message"] = f"Invalid submission: {err}"
-            return Msg(name=self.name, content=return_content, role="assistant")
+            return ReturnMsg(content=return_content)
             
-        material_submission: Dict = x['content']['material_submission']
+        return_content["valid"] = True
         
-        for material, amount in material_submission.items():
-            if material in self.quest_meta.materials_requirement:
-                self.current_status[material] = self.current_status.get(material, 0) + amount
+        submission_agent_id = x['agent_id']
+        material_submission: Dict = x['material_submission']
         
-        if self._is_finished():
+        # create material items as described in submission msg
+        for material_type_id, amount in material_submission.items(): 
+            if amount <= 0:
+                continue
+            materials = material_item_factory(material_type_id, submission_agent_id, amount)
+            if materials[0] in self.quest_meta.materials_requirement:
+                self.current_status[materials[0]] = self.current_status.get(materials[0], 0) + amount
+        
+        # check if task is accomplished
+        if self.is_accomplished():
             return_content["message"] = self.quest_meta.finished_msg
             return_content["finished"] = True
         else:
@@ -169,23 +200,31 @@ class Quest(AgentBase):
             })
             return_content["hint"] = self.quest_meta.hint
         
-        return Msg(name=self.name, content=return_content, role="assistant")
+        return ReturnMsg(content=return_content)
+      
+    def is_accomplished(self) -> bool:
+        '''
+        Return True if all materials are submitted.
+        '''
+        for material, amount in self.quest_meta.materials_requirement.items():
+            if material not in self.current_status or self.current_status[material] < amount:
+                return False
+        return True
+    
+    def introduction(self) -> str:
+        '''
+        Return the introduction of the quest.
+        '''
+        return self.quest_meta.prompt()
         
     def _validate(self, x: dict) -> Error:
         # TODO: validate if x is compatible
         if not isinstance(x, dict):
             return Error("x must be a dict")
         
-        if "content" not in x:
-            return Error("x must contain a 'content' field")
-        
-        if not isinstance(x['content'], dict):
-            return Error("x['content'] must be a dict")
-        
-        content = x['content']
-        if "agent_id" not in content or content["agent_id"] != self.quest_meta.agent_id:
+        if "agent_id" not in x or x["agent_id"] != self.quest_meta.agent_id:
             return Error("agent_id not existed or invalid")
-        if "material_submission" not in content:
+        if "material_submission" not in x:
             return Error("material_submission not existed")
             
         return None
@@ -197,16 +236,12 @@ class Quest(AgentBase):
         res = {}
         for material, amount in self.current_status.items():
             res[str(material)] = amount
-        return json.dumps(res)
+        return json.dumps(res)   
+
     
-    def _is_finished(self) -> bool:
-        '''
-        Return True if all materials are submitted.
-        '''
-        for material, amount in self.quest_meta.materials_requirement.items():
-            if material not in self.current_status or self.current_status[material] < amount:
-                return False
-        return True
+def submit(quest: Quest, submission_msg: Msg):
+    print(quest(submission_msg).content)
+    time.sleep(1)
     
 
 if __name__ == '__main__':
@@ -221,32 +256,30 @@ if __name__ == '__main__':
     )
     quest = Quest(quest_meta)
     
-    submission_0 = Msg(
-        name="submission_0",
-        content={
-            "agent_id": "kerryyu",
-            "material_submission": {
-                Lumber(possesser_id="kerryyu"): 5,
-            }
-        },
-        role="user",
+    print(quest.introduction())
+    
+    submit(quest=quest, 
+           submission_msg=Msg(
+                name="submission_0",
+                content={
+                    "agent_id": "kerryyu",
+                    "material_submission": {
+                        "lumber": 5,
+                    }
+                },
+                role="user",
+           ),
     )
     
-    print(quest(submission_0).content)
-    
-    time.sleep(1)
-    
-    submission_1 = Msg(
-        name="submission_1",
-        content={
-            "agent_id": "kerryyu",
-            "material_submission": {
-                Lumber(possesser_id="kerryyu"): 5,
-            }
-        },
-        role="user",
+    submit(quest=quest, 
+           submission_msg=Msg(
+                name="submission_1",
+                content={
+                    "agent_id": "kerryyu",
+                    "material_submission": {
+                        "lumber": 5,
+                    }
+                },
+                role="user",
+           ),
     )
-    
-    print(quest(submission_0).content)
-    
-    time.sleep(1)

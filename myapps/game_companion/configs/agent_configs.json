@@ -1,0 +1,11 @@
+[
+    {
+        "class": "DictDialogAgent",
+        "args": {
+            "name": "Agent1",
+            "sys_prompt": "You're a helpful assistant.",
+            "model_config_name": "dashscope_chat-qwen",
+            "use_memory": true
+        }
+    }
+]
