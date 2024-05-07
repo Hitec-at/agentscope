@@ -19,8 +19,10 @@ class Error(str):
         return self.msg
 
 
-class ObjectMeta(dict):
-    
+class MaterialItem(dict):
+    '''
+    An material item can be obtained by agents via a variety of approaches.
+    '''
     def __init__(self, 
                  name="",
                  type="basic",
@@ -29,7 +31,7 @@ class ObjectMeta(dict):
                  type_id="",
                  **kwargs) -> None:
         self.name = name
-        self.object_id = f"{self.name}_{uuid.uuid4().hex}"
+        self.item_id = f"{self.name}_{uuid.uuid4().hex}"
         self.type_id = type_id
         self.description = description
         self.possesser_id = possesser_id
@@ -62,7 +64,7 @@ class ObjectMeta(dict):
         return f"{self.name}:({self.type_id})"
 
 
-class Lumber(ObjectMeta):
+class Lumber(MaterialItem):
     def __init__(self, 
                  possesser_id="",) -> None:
         super().__init__(name="lumber",
@@ -75,22 +77,33 @@ class Lumber(ObjectMeta):
 class QuestMeta(dict):
     def __init__(self, 
                  name="basic_quest",
+                 agent_id="",
                  description="It's a quest base",
                  hint="You need to do something.",
                  unfinished_msg="The quest is not finished yet. Current status: {current_status}",
                  finished_msg="Congrats! You've finished the quest.",
-                 materials_requirement: Dict[ObjectMeta, int] = {},
+                 materials_requirement: Dict[MaterialItem, int] = {},
                  **kwargs) -> None:
         self.name = name
-        self.quest_id = f"{self.name}_{uuid.uuid4().hex}"
+        self.agent_id = agent_id
         self.description = description
         self.hint = hint
         self.unfinished_msg = unfinished_msg
         self.finished_msg = finished_msg
         self.materials_requirement = materials_requirement
         
+        self._quest_id = self.__class__.generate_id()
+        
         self.update(kwargs)
         
+    @classmethod
+    def generate_id(cls) -> str:
+        return f"{cls.__name__}_{uuid.uuid4().hex}"
+    
+    @property
+    def quest_id(self) -> str:
+        return self._quest_id
+
     def __getattr__(self, key: Any) -> Any:
         try:
             return self[key]
@@ -131,36 +144,32 @@ class Quest(AgentBase):
         Returns:
             The quest's finish status and message, including status and hints.
         '''
+        return_content = {
+            "valid": False,
+            "finished": False,
+        }
         err = self._validate(x)
         if err != None:
             logger.error(f"Invalid submission: {err}")
-            return {
-                "message": f"Invalid submission: {err}",
-                "finished": False,
-                "hint": self.quest_meta.hint,
-            }
+            return_content["message"] = f"Invalid submission: {err}"
+            return Msg(name=self.name, content=return_content, role="assistant")
             
-        material_submission: Dict = x['content']
+        material_submission: Dict = x['content']['material_submission']
         
         for material, amount in material_submission.items():
             if material in self.quest_meta.materials_requirement:
                 self.current_status[material] = self.current_status.get(material, 0) + amount
         
         if self._is_finished():
-            content = {
-                "message": self.quest_meta.finished_msg,
-                "finished": True,
-            }
+            return_content["message"] = self.quest_meta.finished_msg
+            return_content["finished"] = True
         else:
-            content = {
-                "message": self.quest_meta.unfinished_msg.format_map({
-                   "current_status": self._current_status_str(),
-                }),
-                "finished": False,
-                "hint": self.quest_meta.hint,
-            }
+            return_content["message"] = self.quest_meta.unfinished_msg.format_map({
+                "current_status": self._current_status_str(),
+            })
+            return_content["hint"] = self.quest_meta.hint
         
-        return Msg(name=self.name, content=content, role="assistant")
+        return Msg(name=self.name, content=return_content, role="assistant")
         
     def _validate(self, x: dict) -> Error:
         # TODO: validate if x is compatible
@@ -172,6 +181,12 @@ class Quest(AgentBase):
         
         if not isinstance(x['content'], dict):
             return Error("x['content'] must be a dict")
+        
+        content = x['content']
+        if "agent_id" not in content or content["agent_id"] != self.quest_meta.agent_id:
+            return Error("agent_id not existed or invalid")
+        if "material_submission" not in content:
+            return Error("material_submission not existed")
             
         return None
     
@@ -197,6 +212,7 @@ class Quest(AgentBase):
 if __name__ == '__main__':
     quest_meta = QuestMeta(
         name="lumber_hunt",
+        agent_id="kerryyu",
         description="Get 10 lumber to build your first timber house.",
         hint="Check your inventory to see if you have enough lumber. Felwood is a good place to find lumber.",
         materials_requirement={
@@ -208,7 +224,10 @@ if __name__ == '__main__':
     submission_0 = Msg(
         name="submission_0",
         content={
-            Lumber(possesser_id="kerryyu"): 5,
+            "agent_id": "kerryyu",
+            "material_submission": {
+                Lumber(possesser_id="kerryyu"): 5,
+            }
         },
         role="user",
     )
@@ -220,7 +239,10 @@ if __name__ == '__main__':
     submission_1 = Msg(
         name="submission_1",
         content={
-            Lumber(possesser_id="kerryyu"): 5,
+            "agent_id": "kerryyu",
+            "material_submission": {
+                Lumber(possesser_id="kerryyu"): 5,
+            }
         },
         role="user",
     )
