@@ -7,11 +7,7 @@ from loguru import logger
 
 from .config import _ModelConfig
 from .model import ModelWrapperBase
-from .response import (
-    ModelResponse,
-    ResponseParsingError,
-    ResponseParser,
-)
+from .response import ModelResponse
 from .post_model import (
     PostAPIModelWrapperBase,
     PostAPIChatWrapper,
@@ -44,13 +40,15 @@ from .post_qwen_sft import (
     PostQwenSFTWrapperBase,
     PostAPIForQWENSFT
 )
+from .zhipu_model import (
+    ZhipuAIChatWrapper,
+    ZhipuAIEmbeddingWrapper,
+)
 
 
 __all__ = [
     "ModelWrapperBase",
     "ModelResponse",
-    "ResponseParser",
-    "ResponseParsingError",
     "PostAPIModelWrapperBase",
     "PostAPIChatWrapper",
     "OpenAIWrapperBase",
@@ -66,6 +64,8 @@ __all__ = [
     "OllamaGenerationWrapper",
     "GeminiChatWrapper",
     "GeminiEmbeddingWrapper",
+    "ZhipuAIChatWrapper",
+    "ZhipuAIEmbeddingWrapper",
     "load_model_by_config_name",
     "read_model_configs",
     "clear_model_configs",
@@ -149,6 +149,8 @@ def read_model_configs(
     if clear_existing:
         clear_model_configs()
 
+    cfgs = None
+
     if isinstance(configs, str):
         with open(configs, "r", encoding="utf-8") as f:
             cfgs = json.load(f)
@@ -162,6 +164,13 @@ def read_model_configs(
                 "The model config unit should be a dict.",
             )
         cfgs = configs
+
+    if cfgs is None:
+        raise TypeError(
+            f"Invalid type of model_configs, it could be a dict, a list of "
+            f"dicts, or a path to a json file (containing a dict or a list "
+            f"of dicts), but got {type(configs)}",
+        )
 
     format_configs = _ModelConfig.format_configs(configs=cfgs)
 
