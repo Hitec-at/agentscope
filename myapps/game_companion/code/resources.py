@@ -3,6 +3,7 @@
 
 from functools import partial
 import json
+import math
 import time
 from typing import Any, Dict, Sequence
 import uuid
@@ -86,7 +87,7 @@ def material_item_factory(item_type_id: str,
         Lumber.type_id: Lumber,
     }
     
-    return [material_dict[item_type_id](possesser_id=possesser_id) for _ in range(number)]
+    return [material_dict[item_type_id](possesser_id=possesser_id) for _ in range(math.floor(number))]
     
 
 class QuestMeta(dict):
@@ -96,7 +97,7 @@ class QuestMeta(dict):
                  description="It's a quest base",
                  hint="You need to do something.",
                  unfinished_msg="The quest is not finished yet. Current status: {current_status}",
-                 finished_msg="Congrats! You've finished the quest.",
+                 finished_msg="You have finished the quest!",
                  materials_requirement: Dict[MaterialItem, int] = {},
                  **kwargs) -> None:
         self.name = name
@@ -124,7 +125,7 @@ class QuestMeta(dict):
         for k, v in self.materials_requirement.items():
             requirement_msgs.append(f"{str(k)}: {v}")
             
-        return f"name: {self.name}, description: {self.description}, requirement: {{{",".join(requirement_msgs)}}}"
+        return f"{self.name}: {self.description}. requirement: {{{",".join(requirement_msgs)}}}"
 
     def __getattr__(self, key: Any) -> Any:
         try:
@@ -143,6 +144,7 @@ class QuestMeta(dict):
 
 
 class Quest(AgentBase):
+    name_prefix = "Quest-"
     '''
     A Quest is a specific goal or objective, assigned by player to an agent, that requires submitting certain number and type of materials.
     '''
@@ -151,7 +153,7 @@ class Quest(AgentBase):
         self.quest_meta = quest_meta
         self.current_status: Dict = {} # {material: amount}
         
-        super().__init__(name=quest_meta.name, use_memory=False)
+        super().__init__(name=self.name_prefix+quest_meta.name, use_memory=False)
     
     def reply(self, x: dict = None) -> dict:
         '''
@@ -170,11 +172,13 @@ class Quest(AgentBase):
             "valid": False,
             "finished": False,
         }
-        ReturnMsg = partial(Msg, name=self.name, role="assistant", echo=True)
+        ReturnMsg = partial(Msg, name=self.name, role="assistant")
+        Echo = partial(Msg, name=self.name, role="assistant", echo=True)
         err = self._validate(x)
         if err != None:
             logger.error(f"Invalid submission: {err}")
             return_content["message"] = f"Invalid submission: {err}"
+            Echo(content=return_content["message"]) # echo
             return ReturnMsg(content=return_content)
             
         return_content["valid"] = True
@@ -200,6 +204,7 @@ class Quest(AgentBase):
             })
             return_content["hint"] = self.quest_meta.hint
         
+        Echo(content=return_content["message"]) # echo
         return ReturnMsg(content=return_content)
       
     def is_accomplished(self) -> bool:
@@ -224,7 +229,7 @@ class Quest(AgentBase):
         
         if "agent_id" not in x or x["agent_id"] != self.quest_meta.agent_id:
             return Error("agent_id not existed or invalid")
-        if "material_submission" not in x:
+        if "material_submission" not in x or not isinstance(x["material_submission"], dict):
             return Error("material_submission not existed")
             
         return None
