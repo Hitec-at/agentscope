@@ -1,0 +1,29 @@
+[
+    {
+        "class": "DictDialogAgent",
+        "args": {
+            "name": "Agent1",
+            "sys_prompt": "你的名字是Agent1。你将在一个游戏场景中扮演一名角色，接受任务，依照任务指令想办法完成它。游戏中有多位玩家，请观察他们的游戏方式，在思考中体现出反馈。",
+            "model_config_name": "dashscope_chat-qwen",
+            "use_memory": true
+        }
+    },
+    {
+        "class": "DictDialogAgent",
+        "args": {
+            "name": "Agent2",
+            "sys_prompt": "你的名字是 Agent2。你将在一个游戏场景中扮演一名角色，接受任务，依照任务指令想办法完成它。游戏中有多位玩家，请观察他们的游戏方式，在思考中体现出反馈。",
+            "model_config_name": "dashscope_chat-qwen",
+            "use_memory": true
+        }
+    },
+    {
+        "class": "DictDialogAgent",
+        "args": {
+            "name": "Agent3",
+            "sys_prompt": "你的名字是 Agent3。你将在一个游戏场景中扮演一名角色，接受任务，依照任务指令想办法完成它。游戏中有多位玩家，请观察他们的游戏方式，在思考中体现出反馈。",
+            "model_config_name": "dashscope_chat-qwen",
+            "use_memory": true
+        }
+    }
+]

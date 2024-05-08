@@ -1,0 +1,33 @@
+[
+    {
+        "config_name": "xverse-chat-65B-2",
+        "model_type": "xverse_chat",
+        
+        "model_name": "XVERSE-65B-2",
+        "api_key_envvar": "XVERSE_API_KEY"
+    },
+    {
+        "config_name": "qwen",
+        "model_type": "post_qwen_sft_chat",
+        "api_url": "https://infer-app-modelarts-cn-southwest-2.myhuaweicloud.com/v1/infers/95604da5-73ab-4644-b1bd-e6750a351f44/generate",
+        "json_args": {
+            "max_length": 1024,
+            "temperature": 0.85
+        },
+        "api_key_key": "X-Apig-AppCode",
+        "api_key_envvar": "QWEN_API_KEY",
+        "messages_key": "prompt",
+        "headers": {
+            "Content-Type": "application/json"
+        }
+    },
+    {
+        "config_name": "dashscope_chat-qwen",
+        "model_type": "dashscope_chat",
+        "model_name": "qwen1.5-32b-chat",
+        "api_key_envvar": "QWEN_API_KEY",
+        "generate_args": {
+            "temperature": 0.7
+        }
+    }
+]

@@ -2,6 +2,7 @@
 """A dict dialog agent that using `parse_func` and `fault_handler` to
 parse the model response."""
 import json
+import re
 from typing import Any, Optional, Callable
 from loguru import logger
 
@@ -26,7 +27,13 @@ def parse_dict(response: ModelResponse) -> ModelResponse:
         # a valid JSON format. We replace single quotes with double quotes and
         # try to load it again.
         # TODO: maybe using a more robust json library to handle this case
-        response_dict = json.loads(response.text.replace("'", '"'))
+        try:
+            # if failed again, try to match the first
+            response_dict = json.loads(response.text.replace("'", '"'))
+        except json.decoder.JSONDecodeError:
+            json_part = re.search(r"\{.*\}$", response.text).group()
+            response_dict = json.loads(json_part)
+        
 
     return ModelResponse(raw=response_dict)
 
